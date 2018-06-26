@@ -12,7 +12,7 @@ object TcpServer {
 }
 
 class TcpServer(port: Int,
-                base: DataBase[Int]) extends Thread {
+                base: DataBase) extends Thread {
   private val server = new ServerSocket(port)
   private var sockets: List[Socket] = Nil
 
@@ -74,7 +74,7 @@ class TcpServer(port: Int,
           base.request(dataid, since)
         } catch {
           case _: NoSuchElementException =>
-            (since, Vector.empty)
+            (since, Vector.empty[DataEntry])
         }
 
       dos.writeInt(TcpServer.ResultSuccess)
@@ -82,7 +82,7 @@ class TcpServer(port: Int,
       dos.writeInt(data.length)
 
       for (value <- data)
-        dos.writeInt(value)
+        value write dos
 
       true
     }
