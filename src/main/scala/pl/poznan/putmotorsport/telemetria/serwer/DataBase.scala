@@ -2,7 +2,11 @@ package pl.poznan.putmotorsport.telemetria.serwer
 
 import java.io._
 
-class DataBase {
+class DataBase(val directory: String) {
+  private val baseFilename: String = stripPath("base.bin")
+  private def chunkFilename(dataId: Int, chunkId: Int): String =
+    stripPath("chunk-" + dataId + ":" + chunkId + ".bin")
+
   private var chunkSet: Set[(Int, Int)] = Set.empty
   private var regMap: Map[Int, DataRegisterer] = Map.empty
 
@@ -35,16 +39,13 @@ class DataBase {
 
   @throws[IOException]
   def saveChunk(chunk: DataChunk): Unit = {
-    val path = chunkPath(chunk)
+    val path = chunkFilename(chunk.dataId, chunk.chunkId)
     val fos = new FileOutputStream(path)
 
     try {
       val dos = new DataOutputStream(fos)
 
-      dos.writeInt(chunk.size)
-
-      for (en <- chunk.valueIterator)
-        en.write(dos)
+      chunk.write(dos)
     } finally {
       fos.close()
     }
@@ -61,24 +62,17 @@ class DataBase {
     if (!hasChunk(dataId, chunkId))
       throw new NoSuchElementException
 
-    val path = chunkPath(dataId, chunkId)
+    val path = chunkFilename(dataId, chunkId)
     val fis = new FileInputStream(path)
 
-    val chunk = new DataChunk(dataId, chunkId)
+    val chunk =
+      try {
+        val dis = new DataInputStream(fis)
 
-    try {
-      val dis = new DataInputStream(fis)
-
-      val size = dis.readInt()
-
-      for (_ <- 0 until size) {
-        val entry = DataEntry.read(dis)
-
-        chunk insert entry
+        DataChunk.read(dis:
+      } finally {
+        fis.close()
       }
-    } finally {
-      fis.close()
-    }
 
     println("chunk " + path + " has been loaded")
 
@@ -127,7 +121,7 @@ class DataBase {
 
   @throws[IOException]
   def save(): Unit = {
-    val fos = new FileOutputStream("/tmp/bdata/base.bin")
+    val fos = new FileOutputStream(baseFilename)
 
     try {
       val dos = new DataOutputStream(fos)
@@ -140,7 +134,7 @@ class DataBase {
 
   @throws[IOException]
   def load(): Unit = {
-    val fis = new FileInputStream("/tmp/bdata/base.bin")
+    val fis = new FileInputStream(baseFilename)
 
     try {
       val dis = new DataInputStream(fis)
@@ -151,9 +145,6 @@ class DataBase {
     }
   }
 
-  def chunkPath(dataId: Int, chunkId: Int): String =
-    chunkPath(new DataChunk(dataId, chunkId))
-
-  def chunkPath(chunk: DataChunk): String =
-    "/tmp/bdata/chunk-" + chunk.stringId + ".bin"
+  def stripPath(filename: String): String =
+    directory + "/" + filename
 }

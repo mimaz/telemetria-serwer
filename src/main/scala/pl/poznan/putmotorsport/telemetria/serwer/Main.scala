@@ -7,7 +7,7 @@ import scala.util.Random
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val base = new DataBase
+    val base = new DataBase("/home/mimakkz/telemetria/")
     val server = new TcpServer(8080, base)
     val scanner = new Scanner(Console.in)
 
@@ -21,8 +21,6 @@ object Main {
       case e: IOException =>
         println("loading failed: " + e)
     }
-
-    val rand = new Random(100)
 
 
 
@@ -42,7 +40,7 @@ object Main {
 
         case "gen" =>
           for (i <- 1 to 10)
-            base.push(0, DataEntry(rand.nextInt(50)))
+            base.push(0, DataEntry(i))
 
         case cmd =>
           println("invalid command: " + cmd)
