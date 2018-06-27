@@ -69,7 +69,7 @@ class DataBase(val directory: String) {
       try {
         val dis = new DataInputStream(fis)
 
-        DataChunk.read(dis:
+        DataChunk.read(dis);
       } finally {
         fis.close()
       }
