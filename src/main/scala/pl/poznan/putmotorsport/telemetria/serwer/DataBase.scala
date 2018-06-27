@@ -10,24 +10,26 @@ class DataBase(val directory: String) {
   private var chunkSet: Set[(Int, Int)] = Set.empty
   private var regMap: Map[Int, DataRegisterer] = Map.empty
 
-  def push(id: Int, value: DataEntry): Unit = synchronized {
-    val reg = regMap get id match {
-      case Some(rg) => rg
+  def push(id: Int, value: DataEntry): Unit =
+    synchronized {
+      val reg = regMap get id match {
+        case Some(rg) => rg
 
-      case None =>
-        val reg = new DataRegisterer(id, this)
-        regMap += id -> reg
+        case None =>
+          val reg = new DataRegisterer(id, this)
+          regMap += id -> reg
 
-        reg
+          reg
+      }
+
+      reg push value
     }
 
-    reg push value
-  }
-
   @throws[NoSuchElementException]
-  def request(id: Int, since: Int): (Int, Vector[DataEntry]) = synchronized {
-    regMap(id) request since
-  }
+  def request(id: Int, since: Int, maxCount: Int): (Int, Vector[DataEntry]) =
+    synchronized {
+      regMap(id).request(since, maxCount)
+    }
 
   def valueIterator(id: Int): Iterator[DataEntry] =
     try {

@@ -19,11 +19,20 @@ class TcpServer(port: Int,
   override def interrupt(): Unit = {
     super.interrupt()
 
-    try {
-      server.close()
-    } catch {
-      case e: IOException =>
-        println("error while closing server socket: " + e)
+    sockets synchronized {
+      try {
+        server.close()
+      } catch {
+        case e: IOException =>
+          println("error while closing server socket: " + e)
+      }
+
+      for (socket <- sockets)
+        try {
+          socket.close()
+        } catch {
+          case _: IOException => Unit
+        }
     }
   }
 
@@ -34,6 +43,7 @@ class TcpServer(port: Int,
       try {
         println("accept..")
         val socket = server.accept()
+        println("accepted!")
         val dis = new DataInputStream(socket.getInputStream)
         val dos = new DataOutputStream(socket.getOutputStream)
 
@@ -45,6 +55,8 @@ class TcpServer(port: Int,
           try {
             while (handle(dis, dos))
               {}
+
+            println("done")
           } catch {
             case e: Throwable if !isInterrupted =>
               Console.err.println("handling request failed: " + e)
@@ -71,7 +83,7 @@ class TcpServer(port: Int,
 
       val (newsince, data) =
         try {
-          base.request(dataid, since)
+          base.request(dataid, since, maxcnt)
         } catch {
           case _: NoSuchElementException =>
             (since, Vector.empty[DataEntry])

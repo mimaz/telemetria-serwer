@@ -19,9 +19,9 @@ class DataRegisterer(val dataId: Int,
       }
     }
 
-  def request(since: Int): (Int, Vector[DataEntry]) =
+  def request(since: Int, maxCount: Int): (Int, Vector[DataEntry]) =
     synchronized {
-      val count = Math.max(valueId - since, 0)
+      val count = Math.min(Math.max(valueId - since, 0), maxCount)
       val vec = (valueIterator take count).toVector
 
       (valueId, vec)
