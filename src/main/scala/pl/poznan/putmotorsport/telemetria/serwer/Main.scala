@@ -8,7 +8,7 @@ object Main {
     val conf = Configuration(args)
 
     val base = new DataBase(conf)
-    val reader = new UartReader(conf)
+    val reader = new UartReader(conf, base)
     val server = new TcpServer(conf, base)
     val scanner = new Scanner(Console.in)
 
@@ -20,7 +20,7 @@ object Main {
       base.load()
     } catch {
       case e: IOException =>
-        println("loading failed: " + e)
+        println(s"loading failed: $e")
     }
 
 
@@ -34,17 +34,13 @@ object Main {
         case "stop" =>
           running = false
 
-        case "test" =>
-          for (i <- base valueIterator 0)
+        case "print" =>
+          for (i <- base valueIterator 90)
             println(i)
           println("-------------")
 
-        case "gen" =>
-          for (i <- 1 to 10)
-            base.push(0, DataEntry(i))
-
         case cmd =>
-          println("invalid command: " + cmd)
+          println(s"invalid command: $cmd")
       }
     }
 

@@ -7,9 +7,10 @@ import gnu.io.{CommPortIdentifier, NoSuchPortException, SerialPort}
 @throws[NoSuchPortException]
 @throws[IOException]
 @throws[ClassCastException]
-class UartReader(conf: Configuration) extends Thread {
+class UartReader(conf: Configuration,
+                 base: DataBase) extends Thread {
   private val ident = CommPortIdentifier.getPortIdentifier(conf.Serial)
-  private val serial = ident.open("telemetria-serwer", 1).asInstanceOf[SerialPort]
+  private val serial = ident.open("telemetria-serwer", 0).asInstanceOf[SerialPort]
   private val istream = serial.getInputStream
 
   serial.setSerialPortParams(
@@ -23,10 +24,10 @@ class UartReader(conf: Configuration) extends Thread {
 
     while (!isInterrupted)
       try {
-        val bytes = istream.readAllBytes()
+        val code = istream.read()
 
-        for (byte <- bytes)
-          byte.asInstanceOf[Char] match {
+        if (code != -1) {
+          code.asInstanceOf[Char] match {
             case c if c > 0x20 =>
               builder.append(c)
 
@@ -34,13 +35,15 @@ class UartReader(conf: Configuration) extends Thread {
               val line = builder.toString()
               builder.clear()
 
-              parseLine(line)
+              if (line.length > 7)
+                parseLine(line)
 
             case _ => Unit
           }
+        }
       } catch {
         case e: IOException =>
-          println("error while reading from uart: " + e)
+          println(s"error while reading from uart: $e")
           Thread.sleep(1000)
     }
 
@@ -49,8 +52,22 @@ class UartReader(conf: Configuration) extends Thread {
 
   private def parseLine(line: String): Unit =
     try {
-      println("line: " + line)
+      val sep1 = line indexOf '='
+      val sep2 = line indexOf ','
+      val sep3 = line indexOf ';'
+
+      val idStr = line.substring(0, sep1)
+      val timeStr = line.substring(sep1 + 1, sep2)
+      val valueStr = line.substring(sep3 + 1)
+
+      val id = Integer.parseInt(idStr, 16)
+      val time = Integer.parseInt(timeStr, 16)
+      val value = Integer.parseInt(valueStr, 16)
+
+      val entry = DataEntry(time, value)
+
+      base.push(id, entry)
     } catch {
-      case e: Exception => println("exception while parsing: " + e)
+      case e: Exception => println(s"exception while parsing: $e")
     }
 }

@@ -19,7 +19,7 @@ object DataChunk {
     new DataChunk(did, cid, vec)
   }
 
-  val Size: Int = 8
+  val Size: Int = 100
 }
 
 class DataChunk(val dataId: Int,
