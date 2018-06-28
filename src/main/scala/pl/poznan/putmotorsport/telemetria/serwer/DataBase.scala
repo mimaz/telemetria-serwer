@@ -2,7 +2,7 @@ package pl.poznan.putmotorsport.telemetria.serwer
 
 import java.io._
 
-class DataBase(val directory: String) {
+class DataBase(conf: Configuration) {
   private val baseFilename: String = stripPath("base.bin")
   private def chunkFilename(dataId: Int, chunkId: Int): String =
     stripPath("chunk-" + dataId + ":" + chunkId + ".bin")
@@ -148,5 +148,5 @@ class DataBase(val directory: String) {
   }
 
   def stripPath(filename: String): String =
-    directory + "/" + filename
+    conf.Directory + "/" + filename
 }

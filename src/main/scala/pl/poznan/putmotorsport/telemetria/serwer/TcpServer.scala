@@ -11,9 +11,9 @@ object TcpServer {
   val ResultSuccess: Int = 10
 }
 
-class TcpServer(port: Int,
+class TcpServer(conf: Configuration,
                 base: DataBase) extends Thread {
-  private val server = new ServerSocket(port)
+  private val server = new ServerSocket(conf.Port)
   private var sockets: List[Socket] = Nil
 
   override def interrupt(): Unit = {

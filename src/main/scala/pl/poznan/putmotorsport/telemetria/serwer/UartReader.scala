@@ -7,15 +7,14 @@ import gnu.io.{CommPortIdentifier, NoSuchPortException, SerialPort}
 @throws[NoSuchPortException]
 @throws[IOException]
 @throws[ClassCastException]
-class UartReader(portName: String,
-                 baud: Int) extends Thread {
-  private val dataBits = SerialPort.DATABITS_8
-  private val stopBits = SerialPort.STOPBITS_1
-  private val parity = SerialPort.PARITY_NONE
-
-  private val ident = CommPortIdentifier.getPortIdentifier(portName)
+class UartReader(conf: Configuration) extends Thread {
+  private val ident = CommPortIdentifier.getPortIdentifier(conf.Serial)
   private val serial = ident.open("telemetria-serwer", 1).asInstanceOf[SerialPort]
   private val istream = serial.getInputStream
+
+  serial.setSerialPortParams(
+    conf.BaudRate, conf.DataBits,
+    conf.StopBits, conf.Parity)
 
   override def run(): Unit = {
     super.run()
