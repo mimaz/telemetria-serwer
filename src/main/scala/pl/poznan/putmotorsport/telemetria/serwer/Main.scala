@@ -3,6 +3,8 @@ package pl.poznan.putmotorsport.telemetria.serwer
 import java.io.IOException
 import java.util.Scanner
 
+import gnu.io.SerialPort
+
 import scala.util.Random
 
 object Main {
@@ -11,8 +13,11 @@ object Main {
     val server = new TcpServer(8080, base)
     val scanner = new Scanner(Console.in)
 
+    val reader = new UartReader("/dev/ttyACM0", 115200)
+
 
     server.start()
+    reader.start()
 
 
     try {
@@ -27,7 +32,7 @@ object Main {
     var running = true
 
     while (running) {
-      println("$< ")
+      print("$< ")
 
       scanner.nextLine() match {
         case "stop" =>
@@ -59,5 +64,8 @@ object Main {
 
     server.interrupt()
     server.join()
+
+    reader.interrupt()
+    reader.join()
   }
 }
