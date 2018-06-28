@@ -4,19 +4,16 @@ import java.io.{DataInputStream, DataOutputStream}
 
 object DataEntry {
   def read(dis: DataInputStream): DataEntry = {
-    val time = dis.readInt()
-    val value = dis.readInt()
+    val value = dis.readShort()
 
-    DataEntry(time, value)
+    DataEntry(value)
   }
 }
 
-case class DataEntry(time: Int,
-                     value: Int) {
+case class DataEntry(value: Short) {
   def write(dos: DataOutputStream): Unit = {
-    dos.writeInt(time)
-    dos.writeInt(value)
+    dos.writeShort(value)
   }
 
-  override def toString: String = s"$time :: $value"
+  override def toString: String = s"$value"
 }

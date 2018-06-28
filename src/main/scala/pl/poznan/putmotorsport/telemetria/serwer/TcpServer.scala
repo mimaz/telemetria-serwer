@@ -74,24 +74,34 @@ class TcpServer(conf: Configuration,
     val cmd = dis.readInt()
 
     def data(): Boolean = {
-      val since = dis.readInt()
       val maxcnt = dis.readInt()
-      val dataid = dis.readInt()
+      val idcnt = dis.readInt()
 
-      val (newsince, data) =
-        try {
-          base.request(dataid, since, maxcnt)
-        } catch {
-          case _: NoSuchElementException =>
-            (since, Vector.empty[DataEntry])
-        }
+      var ids: Vector[(Int, Int)] = Vector.empty
 
-      dos.writeInt(TcpServer.ResultSuccess)
-      dos.writeInt(newsince)
-      dos.writeInt(data.length)
+      for (_ <- 0 until idcnt) {
+        val id = dis.readInt()
+        val since = dis.readInt()
 
-      for (value <- data)
-        value write dos
+        ids :+= (id, since)
+      }
+
+      for ((id, since) <- ids) {
+        val (newsince, data) =
+          try {
+            base.request(id, since, maxcnt)
+          } catch {
+            case _: NoSuchElementException =>
+              (since, Vector.empty[DataEntry])
+          }
+
+        dos.writeInt(TcpServer.ResultSuccess)
+        dos.writeInt(newsince)
+        dos.writeInt(data.length)
+
+        for (value <- data)
+          value write dos
+      }
 
       true
     }

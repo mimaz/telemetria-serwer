@@ -53,18 +53,19 @@ class UartReader(conf: Configuration,
   private def parseLine(line: String): Unit =
     try {
       val sep1 = line indexOf '='
-      val sep2 = line indexOf ','
-      val sep3 = line indexOf ';'
+      val sep2 = line indexOf ';'
 
       val idStr = line.substring(0, sep1)
       val timeStr = line.substring(sep1 + 1, sep2)
-      val valueStr = line.substring(sep3 + 1)
+      val valueStr = line.substring(sep2 + 1)
 
       val id = Integer.parseInt(idStr, 16)
-      val time = Integer.parseInt(timeStr, 16)
-      val value = Integer.parseInt(valueStr, 16)
+      val value = Integer.parseInt(valueStr, 16).asInstanceOf[Short]
 
-      val entry = DataEntry(time, value)
+      if (sep2 - sep1 != 7)
+        throw new Exception(s"invalid frame size: ${sep2 - sep1}: $line")
+
+      val entry = DataEntry(value)
 
       base.push(id, entry)
     } catch {
