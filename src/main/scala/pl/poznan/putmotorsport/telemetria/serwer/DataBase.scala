@@ -3,7 +3,7 @@ package pl.poznan.putmotorsport.telemetria.serwer
 import java.io._
 
 class DataBase(conf: Configuration) {
-  private val baseFilename: String = stripPath("base.bin")
+  private val baseFilename: String = stripPath("data-base.bin")
   private def chunkFilename(dataId: Int, chunkId: Int): String =
     stripPath("chunk-" + dataId + ":" + chunkId + ".bin")
 

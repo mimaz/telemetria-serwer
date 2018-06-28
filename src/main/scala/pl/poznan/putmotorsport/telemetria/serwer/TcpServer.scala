@@ -41,10 +41,9 @@ class TcpServer(conf: Configuration,
 
     while (!isInterrupted) {
       try {
-        println("accept..")
         val socket = server.accept()
-        println("accepted!")
-        val dis = new DataInputStream(socket.getInputStream)
+
+       val dis = new DataInputStream(socket.getInputStream)
         val dos = new DataOutputStream(socket.getOutputStream)
 
         sockets synchronized {
@@ -55,8 +54,6 @@ class TcpServer(conf: Configuration,
           try {
             while (handle(dis, dos))
               {}
-
-            println("done")
           } catch {
             case e: Throwable if !isInterrupted =>
               Console.err.println("handling request failed: " + e)
