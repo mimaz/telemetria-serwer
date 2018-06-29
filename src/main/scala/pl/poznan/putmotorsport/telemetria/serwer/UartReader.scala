@@ -1,15 +1,66 @@
 package pl.poznan.putmotorsport.telemetria.serwer
 
 import java.io.IOException
+import java.util.Scanner
 
 import gnu.io.{CommPortIdentifier, NoSuchPortException, SerialPort}
+
+object UartReader {
+  def open(conf: Configuration,
+           handler: (Int, DataEntry) => Unit): UartReader = {
+    var ident =
+      try {
+        CommPortIdentifier.getPortIdentifier(conf.Serial)
+      } catch {
+        case _: NoSuchPortException =>
+          fallbackPort
+      }
+
+    new UartReader(ident, conf, handler)
+  }
+
+  private def fallbackPort: CommPortIdentifier = {
+    var idents: List[CommPortIdentifier] = Nil
+    val identIt = CommPortIdentifier.getPortIdentifiers
+
+    while (identIt.hasMoreElements)
+      idents = identIt.nextElement().asInstanceOf[CommPortIdentifier] :: idents
+
+    idents match {
+      case Nil =>
+        throw new NoSuchPortException()
+
+      case id :: Nil =>
+        id
+
+      case list =>
+        println(s"${list.length} ports available: ")
+
+        for ((idx, ident) <- (1 to list.length) zip idents)
+          println(s"$idx: ${ident.getName}")
+
+        val scanner = new Scanner(Console.in)
+        var num = -1
+
+        while (num < 1 || num > list.length) {
+          print("enter port number: ")
+
+          num = scanner.nextInt()
+        }
+
+        idents(num - 1)
+    }
+  }
+}
 
 @throws[NoSuchPortException]
 @throws[IOException]
 @throws[ClassCastException]
-class UartReader(conf: Configuration,
-                 base: DataBase) extends Thread {
-  private val ident = CommPortIdentifier.getPortIdentifier(conf.Serial)
+class UartReader(ident: CommPortIdentifier,
+                 conf: Configuration,
+                 handler: (Int, DataEntry) => Unit) extends Thread {
+  println(s"opening port ${ident.getName}")
+
   private val serial = ident.open("telemetria-serwer", 0).asInstanceOf[SerialPort]
   private val istream = serial.getInputStream
 
@@ -67,7 +118,7 @@ class UartReader(conf: Configuration,
 
       val entry = DataEntry(value)
 
-      base.push(id, entry)
+      handler(id, entry)
     } catch {
       case e: Exception => println(s"exception while parsing: $e")
     }

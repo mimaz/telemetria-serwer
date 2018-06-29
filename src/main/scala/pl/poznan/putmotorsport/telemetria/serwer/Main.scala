@@ -8,7 +8,7 @@ object Main {
     val conf = Configuration(args)
 
     val base = new DataBase(conf)
-    val reader = new UartReader(conf, base)
+    val reader = UartReader.open(conf, base.push)
     val server = new TcpServer(conf, base)
     val scanner = new Scanner(Console.in)
 
@@ -53,10 +53,12 @@ object Main {
         println("saving failed: " + e)
     }
 
-    reader.interrupt()
-    reader.join()
-
+    println("closing tcp server..")
     server.interrupt()
     server.join()
+
+    println("closing uart reader..")
+    reader.interrupt()
+    reader.join()
   }
 }
