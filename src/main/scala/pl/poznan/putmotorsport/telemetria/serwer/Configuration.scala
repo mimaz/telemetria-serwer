@@ -8,6 +8,7 @@ case class Configuration(args: Array[String]) {
   if (args.length < 1)
     throw new Exception(Usage)
 
+  val UpdateInterval: Int = 200
   val BaudRate: Int = 115200
   val DataBits: Int = SerialPort.DATABITS_8
   val StopBits: Int = SerialPort.STOPBITS_1

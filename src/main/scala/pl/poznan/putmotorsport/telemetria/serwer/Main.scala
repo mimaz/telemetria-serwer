@@ -8,12 +8,15 @@ object Main {
     val conf = Configuration(args)
 
     val base = new DataBase(conf)
-    val reader = UartReader.open(conf, base.push)
+    val buffer = new DataBuffer
+    val updater = new DataUpdater(conf, buffer, base)
+    val reader = UartReader.open(conf, buffer.update)
     val server = new TcpServer(conf, base)
     val scanner = new Scanner(Console.in)
 
-    reader.start()
+    updater.start()
     server.start()
+    reader.start()
 
 
     try {
@@ -52,6 +55,11 @@ object Main {
       case e: IOException =>
         println("saving failed: " + e)
     }
+
+
+    println("stopping updater..")
+    updater.interrupt()
+    updater.join()
 
     println("closing tcp server..")
     server.interrupt()

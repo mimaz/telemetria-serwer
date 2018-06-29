@@ -8,6 +8,8 @@ object DataEntry {
 
     DataEntry(value)
   }
+
+  val empty = DataEntry(0)
 }
 
 case class DataEntry(value: Short) {
