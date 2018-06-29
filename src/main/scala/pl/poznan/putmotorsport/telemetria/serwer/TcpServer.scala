@@ -43,23 +43,25 @@ class TcpServer(conf: Configuration,
       try {
         val socket = server.accept()
 
-       val dis = new DataInputStream(socket.getInputStream)
-        val dos = new DataOutputStream(socket.getOutputStream)
-
         sockets synchronized {
           sockets = socket :: sockets
         }
 
         Future {
           try {
-            while (handle(dis, dos))
-              {}
+            handle(socket)
           } catch {
-            case e: Throwable if !isInterrupted =>
+            case e: Exception if !isInterrupted =>
               Console.err.println("handling request failed: " + e)
 
-            case _: Throwable =>
-              println("handling request exited")
+            case _: Exception =>
+              Unit
+          } finally {
+            try {
+              socket.close()
+            } catch {
+              case _: IOException => Unit
+            }
           }
         }
       } catch {
@@ -69,11 +71,11 @@ class TcpServer(conf: Configuration,
     }
   }
 
-  private def handle(dis: DataInputStream,
-                     dos: DataOutputStream): Boolean = {
-    val cmd = dis.readInt()
+  private def handle(socket: Socket): Unit = {
+    val dis = new DataInputStream(socket.getInputStream)
+    val dos = new DataOutputStream(socket.getOutputStream)
 
-    def data(): Boolean = {
+    def data(): Unit = {
       val maxcnt = dis.readInt()
       val idcnt = dis.readInt()
 
@@ -102,23 +104,22 @@ class TcpServer(conf: Configuration,
         for (value <- data)
           value write dos
       }
-
-      true
     }
 
-    def invalid(): Boolean = {
+    def invalid(): Unit = {
       dos.writeInt(0)
-      dos.writeUTF("invalid command: " + cmd)
-
-      true
+      dos.writeUTF("invalid command!")
     }
 
-    def default(): Boolean = false
+    var cmd = dis.readInt()
 
-    cmd match {
-      case TcpServer.CmdData => data()
-      case 0 => default()
-      case _ => invalid()
+    while (cmd != 0) {
+      cmd match {
+        case TcpServer.CmdData => data()
+        case _ => invalid()
+      }
+
+      cmd = dis.readInt()
     }
   }
 }
