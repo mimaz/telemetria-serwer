@@ -47,7 +47,7 @@ class TcpServer(conf: Configuration,
           sockets = socket :: sockets filterNot (s => s.isClosed)
         }
 
-        new TcpConnection(socket, base)
+        new TcpConnection(socket, base).start()
       } catch {
         case e: IOException =>
           Console.err.println("server error: " + e)

@@ -13,6 +13,8 @@ class TcpConnection(socket: Socket,
   override def run(): Unit = {
     super.run()
 
+    println(s"connection opened with client IP: ${socket.getRemoteSocketAddress}")
+
     try {
       val dis = new DataInputStream(socket.getInputStream)
       val dos = new DataOutputStream(socket.getOutputStream)
@@ -39,6 +41,8 @@ class TcpConnection(socket: Socket,
     } catch {
       case _: IOException => Unit
     }
+
+    println("connection closed")
   }
 
   private def handleGetData(dis: DataInputStream,
