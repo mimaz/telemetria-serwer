@@ -7,8 +7,6 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object TcpServer {
-  val CmdData: Int = 1
-  val ResultSuccess: Int = 10
 }
 
 class TcpServer(conf: Configuration,
@@ -33,6 +31,8 @@ class TcpServer(conf: Configuration,
         } catch {
           case _: IOException => Unit
         }
+
+      sockets = Nil
     }
   }
 
@@ -44,82 +44,14 @@ class TcpServer(conf: Configuration,
         val socket = server.accept()
 
         sockets synchronized {
-          sockets = socket :: sockets
+          sockets = socket :: sockets filterNot (s => s.isClosed)
         }
 
-        Future {
-          try {
-            handle(socket)
-          } catch {
-            case e: Exception if !isInterrupted =>
-              Console.err.println("handling request failed: " + e)
-
-            case _: Exception =>
-              Unit
-          } finally {
-            try {
-              socket.close()
-            } catch {
-              case _: IOException => Unit
-            }
-          }
-        }
+        new TcpConnection(socket, base)
       } catch {
         case e: IOException =>
           Console.err.println("server error: " + e)
       }
-    }
-  }
-
-  private def handle(socket: Socket): Unit = {
-    val dis = new DataInputStream(socket.getInputStream)
-    val dos = new DataOutputStream(socket.getOutputStream)
-
-    def data(): Unit = {
-      val maxcnt = dis.readInt()
-      val idcnt = dis.readInt()
-
-      var ids: Vector[(Int, Int)] = Vector.empty
-
-      for (_ <- 0 until idcnt) {
-        val id = dis.readInt()
-        val since = dis.readInt()
-
-        ids :+= (id, since)
-      }
-
-      for ((id, since) <- ids) {
-        val (newsince, data) =
-          try {
-            base.request(id, since, maxcnt)
-          } catch {
-            case _: NoSuchElementException =>
-              (since, Vector.empty[DataEntry])
-          }
-
-        dos.writeInt(TcpServer.ResultSuccess)
-        dos.writeInt(newsince)
-        dos.writeInt(data.length)
-
-        for (value <- data)
-          value write dos
-      }
-    }
-
-    def invalid(): Unit = {
-      dos.writeInt(0)
-      dos.writeUTF("invalid command!")
-    }
-
-    var cmd = dis.readInt()
-
-    while (cmd != 0) {
-      cmd match {
-        case TcpServer.CmdData => data()
-        case _ => invalid()
-      }
-
-      cmd = dis.readInt()
     }
   }
 }
