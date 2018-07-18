@@ -2,3 +2,7 @@ target/
 project/target/
 .idea/workspace.xml
 data/
+out/
+src/main/scala/META-INF/
+project/
+.idea/
