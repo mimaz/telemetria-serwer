@@ -37,13 +37,9 @@ object Main {
         case "stop" =>
           running = false
 
-        case "print" =>
-          for (i <- base valueIterator 90)
-            println(i)
-          println("-------------")
-
         case cmd =>
-          println(s"invalid command: $cmd")
+          if (cmd.nonEmpty)
+            println(s"invalid command: $cmd")
       }
     }
 

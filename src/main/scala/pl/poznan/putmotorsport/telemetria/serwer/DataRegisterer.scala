@@ -1,96 +1,95 @@
 package pl.poznan.putmotorsport.telemetria.serwer
 
-import java.io.{DataInputStream, DataOutput, DataOutputStream, IOException}
+import java.io.{DataInputStream, DataOutputStream, FileOutputStream, IOException}
 
 class DataRegisterer(val dataId: Int,
-                     base: DataBase) {
-  private var chunk = new DataChunk(dataId, 0)
+                     base: DataBase,
+                     conf: Configuration) {
+  private var list: List[DataEntry] = Nil
+  private var count: Int = 0
+  private var since: Int = 0
+  private var chunk: Int = 0
 
   def push(value: DataEntry): Unit =
     synchronized {
-      try {
-        chunk insert value
-      } catch {
-        case _: DataChunk.FullException =>
-          base saveChunk chunk
+      list = value :: list
+      count += 1
+      since += 1
 
-          chunk = new DataChunk(dataId, chunk.chunkId + 1)
-          chunk insert value
-      }
+      if (count > conf.ChunkSize)
+        try {
+          writeChunk(chunk)
+
+          list = Nil
+          count = 0
+          chunk += 1
+        } catch {
+          case _: IOException => Unit
+        }
     }
 
-  def request(since: Int, maxCount: Int): (Int, Vector[DataEntry]) =
+  def request(since: Int, maxCount: Int): (Int, Array[DataEntry]) =
     synchronized {
+      //print(s"request for $maxCount from $since with data id ${this.since}")
+
+      val it = new EntryIterator(this)
+
       val count = Math.min(Math.max(valueId - since, 0), maxCount)
-      val vec = (valueIterator take count).toVector
+      val vec = (it take count).toArray
+
+      //println(s" :: vec size ${vec.length}")
+
+      it.close()
 
       (valueId, vec)
     }
 
-  def valueId: Int =
-    synchronized {
-      chunk.valueId
-    }
-
-  def valueIterator: Iterator[DataEntry] =
-    try {
-      new Iterator[DataEntry] {
-        private val chkit = chunkIterator map (_.valueIterator)
-        private var entit: Iterator[DataEntry] = chkit.next()
-
-        override def hasNext: Boolean =
-          entit.hasNext || chkit.hasNext
-
-        override def next(): DataEntry =
-          try {
-            entit.next()
-          } catch {
-            case _: NoSuchElementException =>
-              entit = chkit.next()
-              entit.next()
-          }
-      }
-    } catch {
-      case _: NoSuchElementException =>
-        Iterator.empty
-    }
-
-  def chunkIterator: Iterator[DataChunk] =
-    new Iterator[DataChunk] {
-      private var id = chunk.chunkId
-
-      override def hasNext: Boolean =
-        id == chunk.chunkId || base.hasChunk(dataId, id)
-
-      override def next(): DataChunk = {
-        val chk = {
-          if (id == chunk.chunkId)
-            chunk
-          else
-            base.loadChunk(dataId, id)
-        }
-
-        id -= 1
-
-        chk
-      }
-    }
-
-  def saveChunk(chunk: DataChunk): Unit =
-    base saveChunk chunk
-
-  def hasChunk(chunkId: Int): Boolean =
-    base hasChunk (dataId, chunkId)
-
-  @throws[NoSuchElementException]
-  def loadChunk(chunkId: Int): DataChunk =
-    base loadChunk (dataId, chunkId)
+  def valueId: Int = since
 
   @throws[IOException]
   def write(dos: DataOutputStream): Unit =
-    chunk write dos
+    synchronized {
+      dos.writeInt(count)
+
+      for (entry <- list)
+        entry.write(dos)
+
+      dos.writeInt(since)
+      dos.writeInt(chunk)
+    }
 
   @throws[IOException]
   def read(dis: DataInputStream): Unit =
-    chunk = DataChunk read dis
+    synchronized {
+      count = dis.readInt()
+
+      list = (1 to count).map(_ => DataEntry.read(dis)).toList
+
+      since = dis.readInt()
+      chunk = dis.readInt()
+    }
+
+  def chunkName(id: Int): String =
+    s"${conf.Directory}/data-$dataId-$id.bin"
+
+  def chunkId: Int =
+    chunk
+
+  def localData: List[DataEntry] =
+    list
+
+  private def writeChunk(id: Int): Unit =
+    try {
+      val fname = chunkName(id)
+      val fos = new FileOutputStream(fname)
+      val dos = new DataOutputStream(fos)
+
+      for (entry <- list)
+        entry.write(dos)
+    } catch {
+      case e: IOException =>
+        Console.err.println(s"ERROR: cannot write file to data base: $e")
+
+        throw e
+    }
 }

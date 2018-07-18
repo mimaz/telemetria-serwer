@@ -61,7 +61,7 @@ class UartReader(ident: CommPortIdentifier,
                  handler: (Int, DataEntry) => Unit) extends Thread {
   println(s"opening port ${ident.getName}")
 
-  private val serial = ident.open("telemetria-serwer", 0).asInstanceOf[SerialPort]
+  private val serial = ident.open("telemetria-serwer", 1).asInstanceOf[SerialPort]
   private val istream = serial.getInputStream
 
   serial.setSerialPortParams(

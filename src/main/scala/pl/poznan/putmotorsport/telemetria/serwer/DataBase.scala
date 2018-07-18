@@ -3,11 +3,8 @@ package pl.poznan.putmotorsport.telemetria.serwer
 import java.io._
 
 class DataBase(conf: Configuration) {
-  private val baseFilename: String = stripPath("data-base.bin")
-  private def chunkFilename(dataId: Int, chunkId: Int): String =
-    stripPath("chunk-" + dataId + ":" + chunkId + ".bin")
+  private val baseFilename: String = s"${conf.Directory}/data-base.bin"
 
-  private var chunkSet: Set[(Int, Int)] = Set.empty
   private var regMap: Map[Int, DataRegisterer] = Map.empty
 
   def push(id: Int, value: DataEntry): Unit =
@@ -16,7 +13,7 @@ class DataBase(conf: Configuration) {
         case Some(rg) => rg
 
         case None =>
-          val reg = new DataRegisterer(id, this)
+          val reg = new DataRegisterer(id, this, conf)
           regMap += id -> reg
 
           reg
@@ -26,70 +23,13 @@ class DataBase(conf: Configuration) {
     }
 
   @throws[NoSuchElementException]
-  def request(id: Int, since: Int, maxCount: Int): (Int, Vector[DataEntry]) =
+  def request(id: Int, since: Int, maxCount: Int): (Int, Array[DataEntry]) =
     synchronized {
       regMap(id).request(since, maxCount)
     }
 
-  def valueIterator(id: Int): Iterator[DataEntry] =
-    try {
-      regMap(id).valueIterator
-    } catch {
-      case _: NoSuchElementException =>
-        Iterator.empty
-    }
-
-  @throws[IOException]
-  def saveChunk(chunk: DataChunk): Unit = {
-    val path = chunkFilename(chunk.dataId, chunk.chunkId)
-    val fos = new FileOutputStream(path)
-
-    try {
-      val dos = new DataOutputStream(fos)
-
-      chunk.write(dos)
-    } finally {
-      fos.close()
-    }
-
-    chunkSet += chunk.dataId -> chunk.chunkId
-  }
-
-  def hasChunk(dataId: Int, chunkId: Int): Boolean =
-    chunkSet contains (dataId, chunkId)
-
-  @throws[NoSuchElementException]
-  @throws[IOException]
-  def loadChunk(dataId: Int, chunkId: Int): DataChunk = {
-    if (!hasChunk(dataId, chunkId))
-      throw new NoSuchElementException
-
-    val path = chunkFilename(dataId, chunkId)
-    val fis = new FileInputStream(path)
-
-    val chunk =
-      try {
-        val dis = new DataInputStream(fis)
-
-        DataChunk.read(dis);
-      } finally {
-        fis.close()
-      }
-
-    println("chunk " + path + " has been loaded")
-
-    chunk
-  }
-
   @throws[IOException]
   def write(dos: DataOutputStream): Unit = {
-    dos.writeInt(chunkSet.size)
-
-    for ((did, cid) <- chunkSet) {
-      dos.writeInt(did)
-      dos.writeInt(cid)
-    }
-
     dos.writeInt(regMap.size)
 
     for (reg <- regMap.values) {
@@ -100,20 +40,11 @@ class DataBase(conf: Configuration) {
 
   @throws[IOException]
   def read(dis: DataInputStream): Unit = {
-    val chunkCount = dis.readInt()
-
-    for (_ <- 0 until chunkCount) {
-      val did = dis.readInt()
-      val cid = dis.readInt()
-
-      chunkSet += did -> cid
-    }
-
     val regCount = dis.readInt()
 
     for (_ <- 0 until regCount) {
       val did = dis.readInt()
-      val reg = new DataRegisterer(did, this)
+      val reg = new DataRegisterer(did, this, conf)
 
       reg.read(dis)
 
@@ -146,7 +77,4 @@ class DataBase(conf: Configuration) {
       fis.close()
     }
   }
-
-  def stripPath(filename: String): String =
-    conf.Directory + "/" + filename
 }

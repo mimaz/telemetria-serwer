@@ -65,7 +65,7 @@ class TcpConnection(socket: Socket,
           base.request(id, since, maxcnt)
         } catch {
           case _: NoSuchElementException =>
-            (since, Vector.empty[DataEntry])
+            (since, new Array[DataEntry](0))
         }
 
       dos.writeInt(ResultSuccess)

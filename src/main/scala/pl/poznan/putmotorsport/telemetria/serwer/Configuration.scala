@@ -14,6 +14,7 @@ case class Configuration(args: Array[String]) {
   val StopBits: Int = SerialPort.STOPBITS_1
   val Parity: Int = SerialPort.PARITY_NONE
   val Port: Int = 8080
+  val ChunkSize: Int = 10000
 
   val Directory: String = args(0)
   val Serial: String =
