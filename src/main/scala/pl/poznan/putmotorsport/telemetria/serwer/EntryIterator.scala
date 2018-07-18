@@ -52,7 +52,6 @@ class EntryIterator(reg: DataRegisterer)
           val dis = new DataInputStream(fis)
 
           fopt = Some(fis)
-          println(s"chunk $chunk loaded")
           chunk -= 1
 
           val entry = DataEntry.read(dis)

@@ -120,6 +120,7 @@ class UartReader(ident: CommPortIdentifier,
 
       handler(id, entry)
     } catch {
-      case e: Exception => println(s"exception while parsing: $e")
+      case e: Exception =>
+        println("invalid frame: " + line)
     }
 }

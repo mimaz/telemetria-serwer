@@ -47,6 +47,8 @@ class TcpServer(conf: Configuration,
           sockets = socket :: sockets filterNot (s => s.isClosed)
         }
 
+        socket.setSoTimeout(conf.ServerTimeout)
+
         new TcpConnection(socket, base).start()
       } catch {
         case e: IOException =>
